@@ -1,0 +1,109 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "aidscpull01Name": {
+            "type": "string",
+            "minLength": 1
+        },
+        "aidscpull01AdminUserName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "aidscpull01AdminPassword": {
+            "type": "securestring"
+        },
+        "aidscpull01WindowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2012-R2-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "Windows-Server-Technical-Preview"
+            ]
+        }
+    },
+    "variables": {
+        "aidscpull01ImagePublisher": "MicrosoftWindowsServer",
+        "aidscpull01ImageOffer": "WindowsServer",
+        "aidscpull01OSDiskName": "aidscpull01OSDisk",
+        "aidscpull01VmSize": "Standard_DS1_v2",
+        "aidscpull01VnetID": "/subscriptions/e2e75f95-ca9b-4d7d-ad9a-f8efe3794d28/resourceGroups/AzurePOC_Network/providers/Microsoft.Network/virtualNetworks/AzurePOCvnet",
+        "aidscpull01SubnetRef": "[concat(variables('aidscpull01VnetID'), '/subnets/', 'WebServers')]",
+        "aidscpull01StorageAccountContainerName": "vhds",
+        "aidscpull01NicName": "[concat(parameters('aidscpull01Name'), 'NetworkInterface')]"
+    },
+    "resources": [
+        {
+            "name": "[variables('aidscpull01NicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "australiasoutheast",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [ ],
+            "tags": {
+                "displayName": "aidscpull01Nic"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('aidscpull01SubnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('aidscpull01Name')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "australiasoutheast",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('aidscpull01NicName'))]"
+            ],
+            "tags": {
+                "displayName": "aidscpull01"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('aidscpull01VmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('aidscpull01Name')]",
+                    "adminUsername": "[parameters('aidscpull01AdminUsername')]",
+                    "adminPassword": "[parameters('aidscpull01AdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('aidscpull01ImagePublisher')]",
+                        "offer": "[variables('aidscpull01ImageOffer')]",
+                        "sku": "[parameters('aidscpull01WindowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "aidscpull01OSDisk",
+                        "vhd": {
+                            "uri": "[concat('https://', 'testvmsdisks263', '.blob.core.windows.net/', variables('aidscpull01StorageAccountContainerName'), '/', variables('aidscpull01OSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('aidscpull01NicName'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
